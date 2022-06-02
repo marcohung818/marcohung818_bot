@@ -28,10 +28,11 @@ for i in range(len(prepared_question)):
     question_list.append(question)
 '''Time Related'''
 
-def beep(chat_id) -> None:
+def count_down(chat_id):
   global game_time
-  game_time -= counter_down_minutes
-  bot.send_message(chat_id, text='Time Remain: ' + str(game_time))
+  game_time -= 1
+  if (game_time % 5 == 0):
+    bot.send_message(chat_id, text='Time Remain: ' + str(game_time))
 
 @bot.message_handler(commands=['set']) #Set the timer
 def set_timer(message):
@@ -39,7 +40,7 @@ def set_timer(message):
     args = message.text.split()
     if len(args) > 1 and args[1].isdigit():
         game_time = int(args[1])
-        schedule.every(counter_down_minutes).minutes.do(beep, message.chat.id).tag(message.chat.id)
+        schedule.every(1).minutes.do(count_down, message.chat.id).tag(message.chat.id)
     else:
         bot.reply_to(message, 'Usage: /set <minutes>')         
 
