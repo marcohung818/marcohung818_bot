@@ -8,13 +8,19 @@ bot = telebot.TeleBot(API_KEY)
 users = []
 freeid = None
 question_list = []
-prepared_question =["abc","bbb","777","888"]
+prepared_question =["provider1","bbb","provider2","888"]
 qProvider = 'Provider'
 qContent = 'Content'
-counter_down_minutes = 5
-game_time = None
+counter_down_minutes = 1
+game_time = 180
 startcount = 0
 findcount = 0
+questioncount = 0
+player0ans = None
+player1ans = None
+ans_count = 0
+agree_reply_count = 0
+agree_count = 0
 
 class Question:
   def __init__(self, qprovider, qcontent):
@@ -30,39 +36,25 @@ class User:
 def count_down():
   global game_time
   game_time -= 1
-  if (game_time % 1 == 0):
+  if (game_time % counter_down_minutes == 0): #30Minus announce once
     bot.send_message(users[0], text='Time Remain: ' + str(game_time) + "mins")
     bot.send_message(users[1], text='Time Remain: ' + str(game_time) + "mins")
+    send_question()
+  if (game_time % 180 == 0):
+    return 0
 
-#Set the timer
-@bot.message_handler(commands=['set']) 
-def set_timer(message):
-    global game_time
-    args = message.text.split()
-    if len(args) > 1 and args[1].isdigit():
-        game_time = int(args[1])
-    else:
-        bot.reply_to(message, 'Usage: /set <minutes>')         
-
+#Start timer
 def start_timer():
   schedule.every(1).minutes.do(count_down).tag("timer")
   bot.send_message(users[0], text='Time Remain: ' + str(game_time) + "mins")
   bot.send_message(users[1], text='Time Remain: ' + str(game_time) + "mins")
-  
-#Cancel the counting
-@bot.message_handler(commands=['unset']) 
-def unset_timer(message):
-    schedule.clear("timer")
+  send_question()
 
 #Show remain time
 @bot.message_handler(commands=['showt']) 
 def show_time(message):
   global game_time
-  if game_time != None:
-    bot.send_message(message.chat.id, game_time)
-  else:
-    bot.send_message(message.chat.id, "Time not set yet")
-
+  bot.send_message(message.chat.id, game_time)
 '''Time'''
 
 '''Gameplay'''
@@ -70,7 +62,8 @@ def show_time(message):
 def greet(message):
   global startcount
   if(startcount < 2):
-    bot.send_message(message.chat.id, "如果想玩尋找迷路的Marco遊戲\n請輸入 /find")
+    bot.send_message(message.chat.id, "如果想玩Marco交友Game既\n請輸入 /find")
+    bot.send_message(message.chat.id, "如果需要睇遊戲玩法既\n請輸入 /help")
     startcount += 1
   else:
     bot.send_message(message.chat.id, "Game was started already!!!")
@@ -80,10 +73,9 @@ def find(message):
   global findcount
   if(findcount < 2):
     msg = bot.send_message(message.chat.id, "Please input your name")
-    findcount += 1
     bot.register_next_step_handler(msg, matching)
   else:
-    bot.send_message(message.chat.id, "Game was started already!")
+    bot.send_message(message.chat.id, "Game started already!")
 
 def matching(message):
   global findcount
@@ -96,20 +88,85 @@ def matching(message):
       if chat_id not in users:
         users.append(chat_id)
         if(len(users) == 2):
-          bot.send_message(users[0], "Founded!")
-          bot.send_message(users[1], "Founded!")
+          bot.send_message(users[0], "It's a match!")
+          bot.send_message(users[1], "It's a match!")
           start_timer()
         else:  
-          bot.send_message(message.chat.id, "Finding...")
+          bot.send_message(message.chat.id, "Matching...")
+          findcount += 1
       else:
-        bot.send_message(message.chat.id, "你已經排緊隊啦")
-        findcount -= 1
+        bot.send_message(message.chat.id, "你已經排緊隊啦 唔好咁心急啦")
     else:
       bot.send_message(message.chat.id, "依個遊戲只可以比好中意Marco既人玩(Hints: E)")
-      findcount -= 1
       return
   except Exception as e:
     bot.send_message(message.chat.id, "something error")
+
+def send_question():
+  global questioncount
+  question = "問題by: " + question_list[questioncount].qprovider + " 問題: " + question_list[questioncount].qcontent
+  boardcast(question)
+  questioncount += 1    
+#Send message to both sides
+def boardcast(message_text):
+  bot.send_message(users[0], text=message_text)
+  msg_1 = bot.send_message(users[0], text="Please input your answer")
+  bot.register_next_step_handler(msg_1, store_reply)
+  bot.send_message(users[1], text=message_text)
+  msg_2 = bot.send_message(users[1], text="Please input your answer")
+  bot.register_next_step_handler(msg_2, store_reply)
+
+def store_reply(message):
+  global player0ans
+  global player1ans
+  global ans_count
+  if(message.chat.id == users[0]):
+    player0ans = message.text
+    ans_count += 1
+    release_reply()
+  else:
+    player1ans = message.text
+    ans_count += 1
+    release_reply()
+  
+def release_reply():
+  global ans_count
+  global player0ans
+  global player1ans
+  if ans_count == 2 and player0ans is not None and player1ans is not None:
+    bot.send_message(users[0], "你Match的Answer是\n" + player1ans)
+    bot.send_message(users[1], "你Match的Answer是\n" + player0ans)
+    ans_count = 0 #Reset value
+    player0ans = None
+    player1ans = None
+    msg_1 = bot.send_message(users[0], "同意答案一樣的請回答yes，否則回答no")
+    bot.register_next_step_handler(msg_1, check_ans)
+    msg_2 = bot.send_message(users[1], "同意答案一樣的請回答yes，否則回答no")
+    bot.register_next_step_handler(msg_2, check_ans)
+
+def check_ans(message):
+  global agree_count
+  global agree_reply_count
+  agree_reply_count += 1
+  if(message.text == "yes" or message.text == "YES"):
+    agree_count += 1
+  elif(message.text == "no" or message.text == "NO"):
+    agree_count += 0
+  else:
+    agree_reply_count -= 1
+    check_ans(message)
+  if(agree_reply_count == 2):
+    if(agree_count == 2):
+      bot.send_message(users[0], "Both answer Yes")
+      bot.send_message(users[1], "Both answer Yes")
+      #Release bonus and gps
+    else:
+      bot.send_message(users[0], "未能達到雙方同意")
+      bot.send_message(users[1], "未能達到雙方同意")
+  agree_count = 0
+  agree_reply_count = 0
+    
+    
 '''Gameplay'''
 
 '''Question'''
@@ -125,16 +182,16 @@ def listq(message):
     bot.send_message(message.chat.id, "The question list is empty")
   else:
     for question in question_list:
-      bot.send_message(message.chat.id, "QProvider: " + question.qprovider + " Question: " + question.qcontent)   
+      bot.send_message(message.chat.id, "問題by: " + question.qprovider + " 問題: " + question.qcontent)   
 '''Question'''
 
 '''Help'''
 bot.set_my_commands(
     commands=[
-        telebot.types.BotCommand("start", "Start the game"),
-        telebot.types.BotCommand("find", "Find Marco!!!!!"),
-        telebot.types.BotCommand("showt", "Show remain time"),
-        telebot.types.BotCommand("help", "List all the command"),
+        telebot.types.BotCommand("find", "Find a match!!!"),
+        telebot.types.BotCommand("showtime", "Show remain time"),
+        telebot.types.BotCommand("help", "Show the game play method"),
+        telebot.types.BotCommand("admin", "List all the admin command"),
     ],
 )
 cmd = bot.get_my_commands(scope=None, language_code=None)
@@ -142,12 +199,16 @@ print([c.to_json() for c in cmd])
 
 @bot.message_handler(commands=['help'])
 def help(message):
-  bot.send_message(message.chat.id, "Please input admin password")
-  bot.register_next_step_handler(message, list_full_menu)
+  bot.send_message(message.chat.id, "玩家要先輸入/find尋求自己潛在對象，而match到之後系統就會問你們一樣的問題，你們需要答自己心目中既答案，然後大家去睇是否接受對方的答案，如果兩邊都接受的話，就會得到對方的GPS位置和一個獎勵。如果接受遊戲的話，請現在輸入/find你的伴侶正在等你。\n基於此交友App是測試階段，求求你跟番個instruction去玩，如果9玩有機會會中bug的...如果有任何問題，請致電我們的客服熱線90947184,thx")
 
-def list_full_menu(message):
+@bot.message_handler(commands=['admin'])
+def admin(message):
+  bot.send_message(message.chat.id, "Please input admin password")
+  bot.register_next_step_handler(message, list_admin_menu)
+
+def list_admin_menu(message):
   if(message.text == "123"):
-    bot.send_message(message.chat.id, "/listq - List out all the questions\n/start - Start the game\n/set - Time setting\n/showt - Show remain time\n/unset - Pause the timer")
+    bot.send_message(message.chat.id, "/listq - List out all the questions\n/getLoc - Get opportent location")
   else:
     bot.send_message(message.chat.id, "Wrong password")
 '''Help'''
@@ -157,5 +218,3 @@ if __name__ == '__main__':
     while True:
         schedule.run_pending()
         time.sleep(1)
-
-#bot.polling()
