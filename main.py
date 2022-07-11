@@ -18,6 +18,7 @@ startcount = 0
 findcount = 0
 questioncount = 0
 bonuscount = 0
+reply_times = 0
 player0ans = None
 player1ans = None
 ans_count = 0
@@ -133,22 +134,12 @@ def store_reply(message):
     release_ans()
   else:
     release_reply()
-    if(player0ans not in ["yes", "Yes", "YES", "No", "no", "NO"]):
-      release_reply()
-    else:
-      release_ans()
-  else:
-    player1ans = message.text
-    ans_count += 1
-    if(player1ans not in ["yes", "Yes", "YES", "No", "no", "NO"]):
-      release_reply()
-    else:
-      release_ans()
   
 def release_reply():
   global ans_count
   global player0ans
   global player1ans
+
   if ans_count == 2 and player0ans is not None and player1ans is not None:
     bot.send_message(users[0], "你Match的Answer是\n" + player1ans)
     bot.send_message(users[1], "你Match的Answer是\n" + player0ans)
@@ -161,7 +152,6 @@ def release_ans():
   global ans_count
   global player0ans
   global player1ans
-  print(ans_count)
   if ans_count == 2 and player0ans is not None and player1ans is not None:
     bot.send_message(users[0], "你Match的回答是\n" + player1ans)
     bot.send_message(users[1], "你Match的回答是\n" + player0ans)
