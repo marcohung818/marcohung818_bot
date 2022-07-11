@@ -11,7 +11,7 @@ question_list = []
 prepared_question =["provider1","bbb","provider2","888"]
 qProvider = 'Provider'
 qContent = 'Content'
-counter_down_minutes = 1
+counter_down_minutes = 15
 game_time = 180
 startcount = 0
 findcount = 0
@@ -19,8 +19,9 @@ questioncount = 0
 player0ans = None
 player1ans = None
 ans_count = 0
-agree_reply_count = 0
 agree_count = 0
+player0reply = None
+player1reply = None
 
 class Question:
   def __init__(self, qprovider, qcontent):
@@ -36,7 +37,7 @@ class User:
 def count_down():
   global game_time
   game_time -= 1
-  if (game_time % counter_down_minutes == 0): #30Minus announce once
+  if (game_time % counter_down_minutes == 0): #15Minus announce once
     bot.send_message(users[0], text='Time Remain: ' + str(game_time) + "mins")
     bot.send_message(users[1], text='Time Remain: ' + str(game_time) + "mins")
     send_question()
@@ -48,7 +49,7 @@ def start_timer():
   schedule.every(1).minutes.do(count_down).tag("timer")
   bot.send_message(users[0], text='Time Remain: ' + str(game_time) + "mins")
   bot.send_message(users[1], text='Time Remain: ' + str(game_time) + "mins")
-  send_question()
+  send_example_question()
 
 #Show remain time
 @bot.message_handler(commands=['showt']) 
@@ -62,8 +63,8 @@ def show_time(message):
 def greet(message):
   global startcount
   if(startcount < 2):
-    bot.send_message(message.chat.id, "如果想玩Marco交友Game既\n請輸入 /find")
-    bot.send_message(message.chat.id, "如果需要睇遊戲玩法既\n請輸入 /help")
+    bot.send_message(message.chat.id, "如果想玩Marco交友app既\n請輸入 /find")
+    bot.send_message(message.chat.id, "求求你跟番個遊戲規矩玩，依個交友app如果亂答會好易中bug的...如果需要睇遊戲玩法既\n請輸入 /help")
     startcount += 1
   else:
     bot.send_message(message.chat.id, "Game was started already!!!")
@@ -82,7 +83,7 @@ def matching(message):
   global freeid
   try:
     name = message.text
-    if name in ['ellie', 'marco', 'Ellie', 'Marco']:
+    if name in ['ellie', 'marco', 'Ellie', 'Marco', 'E', 'm']:
       chat_id = message.chat.id
       print(chat_id)
       if chat_id not in users:
@@ -106,14 +107,17 @@ def send_question():
   global questioncount
   question = "問題by: " + question_list[questioncount].qprovider + " 問題: " + question_list[questioncount].qcontent
   boardcast(question)
-  questioncount += 1    
+  questioncount += 1
+def send_example_question():
+  question = "這一條是example，但成功都會有獎勵的\n問題by: Example" + " 問題: " + "孔繁昕女朋友係邊個"
+  boardcast(question)
 #Send message to both sides
 def boardcast(message_text):
   bot.send_message(users[0], text=message_text)
-  msg_1 = bot.send_message(users[0], text="Please input your answer")
+  msg_1 = bot.send_message(users[0], text="Please input your response")
   bot.register_next_step_handler(msg_1, store_reply)
   bot.send_message(users[1], text=message_text)
-  msg_2 = bot.send_message(users[1], text="Please input your answer")
+  msg_2 = bot.send_message(users[1], text="Please input your response")
   bot.register_next_step_handler(msg_2, store_reply)
 
 def store_reply(message):
@@ -123,11 +127,17 @@ def store_reply(message):
   if(message.chat.id == users[0]):
     player0ans = message.text
     ans_count += 1
-    release_reply()
+    if(player0ans not in ["yes", "Yes", "YES", "No", "no", "NO"]):
+      release_reply()
+    else:
+      release_ans()
   else:
     player1ans = message.text
     ans_count += 1
-    release_reply()
+    if(player1ans not in ["yes", "Yes", "YES", "No", "no", "NO"]):
+      release_reply()
+    else:
+      release_ans()
   
 def release_reply():
   global ans_count
@@ -139,33 +149,24 @@ def release_reply():
     ans_count = 0 #Reset value
     player0ans = None
     player1ans = None
-    msg_1 = bot.send_message(users[0], "同意答案一樣的請回答yes，否則回答no")
-    bot.register_next_step_handler(msg_1, check_ans)
-    msg_2 = bot.send_message(users[1], "同意答案一樣的請回答yes，否則回答no")
-    bot.register_next_step_handler(msg_2, check_ans)
+    boardcast("同意答案一樣的請回答yes，否則回答no")
 
-def check_ans(message):
+def release_ans():
+  global ans_count
   global agree_count
-  global agree_reply_count
-  agree_reply_count += 1
-  if(message.text == "yes" or message.text == "YES"):
-    agree_count += 1
-  elif(message.text == "no" or message.text == "NO"):
-    agree_count += 0
-  else:
-    agree_reply_count -= 1
-    check_ans(message)
-  if(agree_reply_count == 2):
-    if(agree_count == 2):
+  global player0ans
+  global player1ans
+  print(ans_count)
+  if ans_count == 2 and player0ans is not None and player1ans is not None:
+    bot.send_message(users[0], "你Match的回答是\n" + player1ans)
+    bot.send_message(users[1], "你Match的回答是\n" + player0ans)
+    if(player0ans in ["yes", "Yes", "YES"] and player1ans in ["yes", "Yes", "YES"]):
       bot.send_message(users[0], "Both answer Yes")
       bot.send_message(users[1], "Both answer Yes")
-      #Release bonus and gps
+      #release bonus
     else:
       bot.send_message(users[0], "未能達到雙方同意")
       bot.send_message(users[1], "未能達到雙方同意")
-  agree_count = 0
-  agree_reply_count = 0
-    
     
 '''Gameplay'''
 
@@ -199,7 +200,13 @@ print([c.to_json() for c in cmd])
 
 @bot.message_handler(commands=['help'])
 def help(message):
-  bot.send_message(message.chat.id, "玩家要先輸入/find尋求自己潛在對象，而match到之後系統就會問你們一樣的問題，你們需要答自己心目中既答案，然後大家去睇是否接受對方的答案，如果兩邊都接受的話，就會得到對方的GPS位置和一個獎勵。如果接受遊戲的話，請現在輸入/find你的伴侶正在等你。\n基於此交友App是測試階段，求求你跟番個instruction去玩，如果9玩有機會會中bug的...如果有任何問題，請致電我們的客服熱線90947184,thx")
+  bot.send_message(message.chat.id, "玩家要先輸入/find尋求自己潛在對象，而match到之後系統就會問你們一樣的問題，你們需要答自己心目中既答案，然後大家去睇是否接受對方的答案，如果兩邊都接受的話，就會得到對方的GPS位置和一個獎勵。如果接受遊戲的話，請現在輸入/find，你的伴侶正在等你。\n基於此交友App是測試階段，求求你跟番個instruction去玩，如果9玩有好大機會會中bug的...如果有任何問題，請致電我們的客服熱線90947184,thx")
+
+@bot.message_handler(commands=['skipq'])
+def skipq(message):
+  global questioncount
+  questioncount += 1
+  bot.send_message(message.chat.id, "The Questioncount equal to " + str(questioncount))
 
 @bot.message_handler(commands=['admin'])
 def admin(message):
@@ -207,8 +214,8 @@ def admin(message):
   bot.register_next_step_handler(message, list_admin_menu)
 
 def list_admin_menu(message):
-  if(message.text == "123"):
-    bot.send_message(message.chat.id, "/listq - List out all the questions\n/getLoc - Get opportent location")
+  if(message.text == "ellie&marco"):
+    bot.send_message(message.chat.id, "/listq - List out all the questions\n/getloc - Get opportent location\n/skipq - Skip the amount of question")
   else:
     bot.send_message(message.chat.id, "Wrong password")
 '''Help'''
