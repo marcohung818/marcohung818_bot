@@ -9,6 +9,7 @@ users = []
 freeid = None
 question_list = []
 prepared_question =["provider1","bbb","provider2","888"]
+bonus_list = ["a.png", "b.png", "c.png"]
 qProvider = 'Provider'
 qContent = 'Content'
 counter_down_minutes = 15
@@ -16,12 +17,10 @@ game_time = 180
 startcount = 0
 findcount = 0
 questioncount = 0
+bonuscount = 0
 player0ans = None
 player1ans = None
 ans_count = 0
-agree_count = 0
-player0reply = None
-player1reply = None
 
 class Question:
   def __init__(self, qprovider, qcontent):
@@ -127,6 +126,13 @@ def store_reply(message):
   if(message.chat.id == users[0]):
     player0ans = message.text
     ans_count += 1
+  else:
+    player1ans = message.text
+    ans_count += 1
+  if(player0ans in ["yes", "Yes", "YES", "No", "no", "NO"] and player1ans in ["yes", "Yes", "YES", "No", "no", "NO"]):
+    release_ans()
+  else:
+    release_reply()
     if(player0ans not in ["yes", "Yes", "YES", "No", "no", "NO"]):
       release_reply()
     else:
@@ -153,7 +159,6 @@ def release_reply():
 
 def release_ans():
   global ans_count
-  global agree_count
   global player0ans
   global player1ans
   print(ans_count)
@@ -163,11 +168,22 @@ def release_ans():
     if(player0ans in ["yes", "Yes", "YES"] and player1ans in ["yes", "Yes", "YES"]):
       bot.send_message(users[0], "Both answer Yes")
       bot.send_message(users[1], "Both answer Yes")
-      #release bonus
+      release_bonus()
     else:
       bot.send_message(users[0], "未能達到雙方同意")
       bot.send_message(users[1], "未能達到雙方同意")
-    
+
+def release_bonus():
+  release_pic()
+  #release_location
+  
+def release_pic():
+  global bonuscount
+  print(bonuscount)
+  #photo = open(bonus_list[bonuscount], 'rb')
+  #bot.send_photo(users[0], photo)
+  #bot.send_photo(users[1], photo)
+  bonuscount += 1
 '''Gameplay'''
 
 '''Question'''
@@ -205,8 +221,11 @@ def help(message):
 @bot.message_handler(commands=['skipq'])
 def skipq(message):
   global questioncount
+  global bonuscount
   questioncount += 1
+  bonuscount += 1
   bot.send_message(message.chat.id, "The Questioncount equal to " + str(questioncount))
+  bot.send_message(message.chat.id, "The Bonuscount equal to " + str(bonuscount))
 
 @bot.message_handler(commands=['admin'])
 def admin(message):
@@ -219,6 +238,11 @@ def list_admin_menu(message):
   else:
     bot.send_message(message.chat.id, "Wrong password")
 '''Help'''
+
+@bot.message_handler(commands=['pic'])
+def pic(message):
+  photo = open('Nutanix-AHV.png', 'rb')
+  bot.send_photo(message.chat.id, photo)
 
 if __name__ == '__main__':
     threading.Thread(target=bot.infinity_polling, name='bot_infinity_polling', daemon=True).start()
