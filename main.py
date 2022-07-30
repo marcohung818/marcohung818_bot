@@ -108,10 +108,12 @@ def send_question():
   question = "問題by: " + question_list[questioncount].qprovider + " 問題: " + question_list[questioncount].qcontent
   boardcast(question)
   questioncount += 1
+  
 def send_example_question():
   question = "這一條是example，但成功都會有獎勵的\n問題by: Example" + " 問題: " + "孔繁昕女朋友係邊個"
   boardcast(question)
 #Send message to both sides
+  
 def boardcast(message_text):
   bot.send_message(users[0], text=message_text)
   msg_1 = bot.send_message(users[0], text="Please input your response")
