@@ -18,7 +18,6 @@ startcount = 0
 findcount = 0
 questioncount = 0
 bonuscount = 0
-reply_times = 0
 player0ans = None
 player1ans = None
 ans_count = 0
@@ -52,7 +51,7 @@ def start_timer():
   send_example_question()
 
 #Show remain time
-@bot.message_handler(commands=['showt']) 
+@bot.message_handler(commands=['showtime']) 
 def show_time(message):
   global game_time
   bot.send_message(message.chat.id, game_time)
@@ -63,20 +62,20 @@ def show_time(message):
 def greet(message):
   global startcount
   if(startcount < 2):
-    bot.send_message(message.chat.id, "如果想玩Marco交友app既\n請輸入 /find")
-    bot.send_message(message.chat.id, "求求你跟番個遊戲規矩玩，依個交友app如果亂答會好易中bug的...如果需要睇遊戲玩法既\n請輸入 /help")
+    help(message)
+    bot.send_message(message.chat.id, "請現在輸入/find，你的伴侶正在等你。")
     startcount += 1
   else:
-    bot.send_message(message.chat.id, "Game was started already!!!")
+    bot.send_message(message.chat.id, "遊戲已經開始咗啦!!!")
 
 @bot.message_handler(commands=['find'])
 def find(message):
   global findcount
   if(findcount < 2):
-    msg = bot.send_message(message.chat.id, "Please input your name")
+    msg = bot.send_message(message.chat.id, "請輸入你的名字")
     bot.register_next_step_handler(msg, matching)
   else:
-    bot.send_message(message.chat.id, "Game started already!")
+    bot.send_message(message.chat.id, "遊戲已經開始咗!!!")
 
 def matching(message):
   global findcount
@@ -93,33 +92,33 @@ def matching(message):
           bot.send_message(users[1], "It's a match!")
           start_timer()
         else:  
-          bot.send_message(message.chat.id, "Matching...")
+          bot.send_message(message.chat.id, "Waiting for a match...")
           findcount += 1
       else:
         bot.send_message(message.chat.id, "你已經排緊隊啦 唔好咁心急啦")
     else:
-      bot.send_message(message.chat.id, "依個遊戲只可以比好中意Marco既人玩(Hints: E)")
+      bot.send_message(message.chat.id, "依個遊戲只可以比好中意Marco既人玩(Hints: E) \n請重新輸入/find")
       return
   except Exception as e:
     bot.send_message(message.chat.id, "something error")
 
 def send_question():
   global questioncount
-  question = "問題by: " + question_list[questioncount].qprovider + " 問題: " + question_list[questioncount].qcontent
+  question = "問題提供者: " + question_list[questioncount].qprovider + "\n問題: " + question_list[questioncount].qcontent
   boardcast(question)
   questioncount += 1
   
 def send_example_question():
-  question = "這一條是example，但成功都會有獎勵的\n問題by: Example" + " 問題: " + "孔繁昕女朋友係邊個"
+  question = "這一條是example，但成功都會有獎勵的\n問題提供者: Bot" + "\n問題: " + "孔繁昕女朋友係邊個"
   boardcast(question)
+
 #Send message to both sides
-  
 def boardcast(message_text):
   bot.send_message(users[0], text=message_text)
-  msg_1 = bot.send_message(users[0], text="Please input your response")
+  msg_1 = bot.send_message(users[0], text="請回答")
   bot.register_next_step_handler(msg_1, store_reply)
   bot.send_message(users[1], text=message_text)
-  msg_2 = bot.send_message(users[1], text="Please input your response")
+  msg_2 = bot.send_message(users[1], text="請回答")
   bot.register_next_step_handler(msg_2, store_reply)
 
 def store_reply(message):
@@ -188,19 +187,19 @@ for i in range(len(prepared_question)):
 @bot.message_handler(commands=['listq'])
 def listq(message):
   if not question_list:
-    bot.send_message(message.chat.id, "The question list is empty")
+    bot.send_message(message.chat.id, "現時沒有任何問題")
   else:
     for question in question_list:
-      bot.send_message(message.chat.id, "問題by: " + question.qprovider + " 問題: " + question.qcontent)   
+      bot.send_message(message.chat.id, "問題提供者: " + question.qprovider + " 問題: " + question.qcontent)   
 '''Question'''
 
 '''Help'''
 bot.set_my_commands(
     commands=[
-        telebot.types.BotCommand("find", "Find a match!!!"),
-        telebot.types.BotCommand("showtime", "Show remain time"),
-        telebot.types.BotCommand("help", "Show the game play method"),
-        telebot.types.BotCommand("admin", "List all the admin command"),
+        telebot.types.BotCommand("find", "開始尋找你的對象"),
+        telebot.types.BotCommand("showtime", "顯示餘下時間"),
+        telebot.types.BotCommand("help", "幫助"),
+        telebot.types.BotCommand("admin", "遊戲管理員功能"),
     ],
 )
 cmd = bot.get_my_commands(scope=None, language_code=None)
@@ -208,16 +207,20 @@ print([c.to_json() for c in cmd])
 
 @bot.message_handler(commands=['help'])
 def help(message):
-  bot.send_message(message.chat.id, "玩家要先輸入/find尋求自己潛在對象，而match到之後系統就會問你們一樣的問題，你們需要答自己心目中既答案，然後大家去睇是否接受對方的答案，如果兩邊都接受的話，就會得到對方的GPS位置和一個獎勵。如果接受遊戲的話，請現在輸入/find，你的伴侶正在等你。\n基於此交友App是測試階段，求求你跟番個instruction去玩，如果9玩有好大機會會中bug的...如果有任何問題，請致電我們的客服熱線90947184,thx")
+  bot.send_message(message.chat.id, "玩家可以用此bot尋找的對象，而match到之後系統每15分鐘會問你們一個問題，你們需要答自己心目中的答案，然後大家去睇是否接受對方的答案，如果雙方都接受的話，就可以選擇分享自己的位置，如果雙方都分享自己的位置才會得到對方的GPS位置和一個獎勵。除了答問題時間外，大家都睇唔到對方同bot之間的對話。遊玩時間有3小時，如果3小時內搵到大家的話就會有bonus獎勵，搵唔到既話就冇懲罰既。如果接受遊戲的話，\n!!!!!!注意事項!!!!!!\n1. 當問題發出後，請在5分鐘內完成問題\n2. 請不要在答問題期間用任何Function 如/find, /showtime等等\n基於此交友App是測試階段，求求你跟番個instruction去玩，如果9玩有好大機會會中bug的...如果有任何問題，請致電我們的客服熱線90947184,thx")
 
 @bot.message_handler(commands=['skipq'])
 def skipq(message):
   global questioncount
   global bonuscount
-  questioncount += 1
-  bonuscount += 1
-  bot.send_message(message.chat.id, "The Questioncount equal to " + str(questioncount))
-  bot.send_message(message.chat.id, "The Bonuscount equal to " + str(bonuscount))
+  value = message.text.split()[1:]
+  if value:
+    questioncount += int(value[0])
+    bonuscount += int(value[0])
+    bot.send_message(message.chat.id, "Questioncount = " + str(questioncount) + "\n下一條問題是第" + str(questioncount + 1) + "條")
+    bot.send_message(message.chat.id, "Bonuscount = " + str(bonuscount))
+  else:
+    bot.send_message(message.chat.id, "請輸入 /shipq [value]")
 
 @bot.message_handler(commands=['admin'])
 def admin(message):
@@ -226,16 +229,17 @@ def admin(message):
 
 def list_admin_menu(message):
   if(message.text == "ellie&marco"):
-    bot.send_message(message.chat.id, "/listq - List out all the questions\n/getloc - Get opportent location\n/skipq - Skip the amount of question")
+    bot.send_message(message.chat.id, "/listq - List out all the questions\n/skipq - Skip the amount of question")
   else:
-    bot.send_message(message.chat.id, "Wrong password")
+    bot.send_message(message.chat.id, "密碼錯誤")
 '''Help'''
 
+'''
 @bot.message_handler(commands=['pic'])
 def pic(message):
   photo = open('Nutanix-AHV.png', 'rb')
   bot.send_photo(message.chat.id, photo)
-
+'''
 if __name__ == '__main__':
     threading.Thread(target=bot.infinity_polling, name='bot_infinity_polling', daemon=True).start()
     while True:
