@@ -8,7 +8,7 @@ bot = telebot.TeleBot(API_KEY)
 users = []
 question_list = []
 prepared_question = ["Bot", "孔繁昕女朋友係邊個", "provider2", "888"]
-bonus_list = ["a.png", "b.png", "c.png"]
+bonus_list = ["xbk_icon.png", "Nutanix-AHV.png", "c.png"]
 public_counter = {
     "game_time": 90,
     "count_down": 10,
@@ -200,17 +200,20 @@ def release_response():
 
 
 def release_bonus():
-    #release_pic()
+    release_pic()
     release_location()
 
 
 def release_pic():
     global public_counter
     global bonus_list
-    print(public_counter['questioncount'])
-    #photo = open(bonus_list[public_counter['questioncount']], 'rb')
-    #bot.send_photo(users[0], photo)
-    #bot.send_photo(users[1], photo)
+    print(public_counter['questioncount'] - 1)
+    bot.send_message(users[0], "這是獎勵的圖片")
+    bot.send_message(users[1], "這是獎勵的圖片")
+    photo1 = open(bonus_list[public_counter['questioncount'] - 1], 'rb')
+    photo2 = open(bonus_list[public_counter['questioncount'] - 1], 'rb')
+    bot.send_photo(users[0], photo1)
+    bot.send_photo(users[1], photo2)
 
 
 def release_location():
@@ -272,7 +275,8 @@ def skipq(message):
     value = message.text.split()[1:]
     if value:
         public_counter['questioncount'] += int(value[0])
-        public_counter['game_time'] -= (int(value[0]) * public_counter['count_down'])
+        public_counter['game_time'] -= (int(value[0]) *
+                                        public_counter['count_down'])
         bot.send_message(
             message.chat.id,
             "Questioncount = " + str(public_counter['questioncount']) +
@@ -301,12 +305,6 @@ def list_admin_menu(message):
 
 
 '''Help'''
-'''
-@bot.message_handler(commands=['pic'])
-def pic(message):
-  photo = open('Nutanix-AHV.png', 'rb')
-  bot.send_photo(message.chat.id, photo)
-'''
 
 
 @bot.message_handler(content_types='location')
