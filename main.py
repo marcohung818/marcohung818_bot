@@ -11,7 +11,7 @@ prepared_question = ["Bot", "孔繁昕女朋友係邊個", "provider2", "888"]
 bonus_list = ["a.png", "b.png", "c.png"]
 public_counter = {
     "game_time": 90,
-    "count_down": 1,
+    "count_down": 10,
     "playercount": 0,
     "questioncount": 0,
     "ans0": None,
@@ -107,7 +107,8 @@ def matching(message):
             else:
                 bot.send_message(message.chat.id, "你已經排緊隊啦 唔好咁心急啦")
         else:
-            bot.send_message(message.chat.id, "依個遊戲只可以比好中意Marco既人玩(Hints: E) \n請重新輸入/find")
+            bot.send_message(message.chat.id,
+                             "依個遊戲只可以比好中意Marco既人玩(Hints: E) \n請重新輸入/find")
             return
     except Exception as e:
         bot.send_message(message.chat.id, "something error")
@@ -116,10 +117,20 @@ def matching(message):
 def send_question():
     global public_counter
     questionPos = public_counter['questioncount']
-    question = "問題提供者: " + question_list[questionPos].qprovider + "\n問題: " + question_list[questionPos].qcontent
-    public_counter['questioncount'] += 1
-    boardcast(question)
+    if (questionPos + 1 >= len(prepared_question)):
+        boardcast_announcement("沒有問題了")
+        return
+    else:
+        question = "問題提供者: " + question_list[
+            questionPos].qprovider + "\n問題: " + question_list[
+                questionPos].qcontent
+        public_counter['questioncount'] += 1
+        boardcast(question)
 
+
+def boardcast_announcement(message_text):
+    bot.send_message(users[0], text=message_text)
+    bot.send_message(users[1], text=message_text)
 
 
 #Send message to both sides
@@ -140,30 +151,57 @@ def store_reply(message):
     else:
         public_counter['ans1'] = message.text
         public_counter['anscount'] += 1
-    release_reply()
+    if (public_counter['ans0'] in ["Yes", "No"]
+            and public_counter['ans1'] in ["Yes", "No"]):
+        release_response()
+    else:
+        release_reply()
 
 
 def release_reply():
     global public_counter
-
-    if public_counter['anscount'] == 2 and public_counter['ans0'] is not None and public_counter['ans1'] is not None:
-        bot.send_message(users[0], "你Match的Answer是\n" + public_counter['ans1'])
-        bot.send_message(users[1], "你Match的Answer是\n" + public_counter['ans0'])
+    if public_counter['anscount'] == 2 and public_counter[
+            'ans0'] is not None and public_counter['ans1'] is not None:
+        bot.send_message(users[0], "你Match的回答是\n" + public_counter['ans1'])
+        bot.send_message(users[1], "你Match的回答是\n" + public_counter['ans0'])
         public_counter['anscount'] = 0  #Reset value
         public_counter['ans0'] = None
         public_counter['ans1'] = None
+        store_response()
 
 
-def release_ans():
+def store_response():
     global public_counter
-    if public_counter['anscount'] == 2 and public_counter['ans0'] is not None and public_counter['ans1'] is not None:
-        bot.send_message(users[0], "你Match的回答是\n" + public_counter['ans1'])
-        bot.send_message(users[1], "你Match的回答是\n" + public_counter['ans0'])
+    keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True,
+                                         resize_keyboard=True)
+    item_yes = types.KeyboardButton('Yes')
+    item_no = types.KeyboardButton('No')
+    keyboard.row(item_yes, item_no)
+    response1 = bot.send_message(users[0],
+                                 '認同大家答案是相同嗎?',
+                                 reply_markup=keyboard)
+    response2 = bot.send_message(users[1],
+                                 '認同大家答案是相同嗎?',
+                                 reply_markup=keyboard)
+    bot.register_next_step_handler(response1, store_reply)
+    bot.register_next_step_handler(response2, store_reply)
+
+
+def release_response():
+    global public_counter
+    if (public_counter['ans0'] == 'Yes' and public_counter['ans1'] == 'Yes'):
+        boardcast_announcement("大家都認同了對方的答案")
+        release_bonus()
+    else:
+        boardcast_announcement("雙方未有統一同意")
+    public_counter['anscount'] = 0  #Reset value
+    public_counter['ans0'] = None
+    public_counter['ans1'] = None
 
 
 def release_bonus():
-    release_pic()
-    #release_location
+    #release_pic()
+    release_location()
 
 
 def release_pic():
@@ -173,6 +211,17 @@ def release_pic():
     #photo = open(bonus_list[public_counter['questioncount']], 'rb')
     #bot.send_photo(users[0], photo)
     #bot.send_photo(users[1], photo)
+
+
+def release_location():
+    global public_counter
+    location_keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True,
+                                                  resize_keyboard=True)
+    item_location = types.KeyboardButton(text='分享位置', request_location=True)
+    location_keyboard.row(item_location)
+    bot.send_message(users[0], "請分享位置", reply_markup=location_keyboard)
+    bot.send_message(users[1], "請分享位置", reply_markup=location_keyboard)
+    public_counter["gpslock"] = 2
 
 
 '''Gameplay'''
@@ -223,8 +272,10 @@ def skipq(message):
     value = message.text.split()[1:]
     if value:
         public_counter['questioncount'] += int(value[0])
+        public_counter['game_time'] -= (int(value[0]) * public_counter['count_down'])
         bot.send_message(
-            message.chat.id, "Questioncount = " + str(public_counter['questioncount']) +
+            message.chat.id,
+            "Questioncount = " + str(public_counter['questioncount']) +
             "\n下一條問題是第" + str(public_counter['questioncount'] + 1) + "條")
     else:
         bot.send_message(message.chat.id, "請輸入 /shipq [value]")
@@ -256,6 +307,29 @@ def pic(message):
   photo = open('Nutanix-AHV.png', 'rb')
   bot.send_photo(message.chat.id, photo)
 '''
+
+
+@bot.message_handler(content_types='location')
+def sendlocation(message):
+    global public_counter
+    del_keyboard_markup = types.ReplyKeyboardRemove(selective=True)
+    if (public_counter["gpslock"] > 0):
+        if (message.chat.id == users[0]):
+            bot.send_message(users[1], "對方現在的位置在")
+            bot.send_location(users[1], message.location.latitude,
+                              message.location.longitude)
+            bot.send_message(users[0],
+                             "你的位置已發送",
+                             reply_markup=del_keyboard_markup)
+        else:
+            bot.send_message(users[0], "對方現在的位置在")
+            bot.send_location(users[0], message.location.latitude,
+                              message.location.longitude)
+            bot.send_message(users[1],
+                             "你的位置已發送",
+                             reply_markup=del_keyboard_markup)
+        public_counter["gpslock"] -= 1
+        print(public_counter["gpslock"])
 
 
 @bot.message_handler(commands=['debug'])
