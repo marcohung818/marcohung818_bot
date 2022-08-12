@@ -7,17 +7,20 @@ API_KEY = os.getenv('API_KEY')
 bot = telebot.TeleBot(API_KEY)
 users = []
 question_list = []
-prepared_question = ["Bot", "孔繁昕女朋友係邊個", "provider2", "888"]
+prepared_question = [
+    "ellie", "ellie 中意咩野色", "marco", "第一次見面係邊日", "ellie", "第一日錫錫既日子"
+]
 bonus_list = ["xbk_icon.png", "Nutanix-AHV.png", "c.png"]
 public_counter = {
     "game_time": 90,
-    "count_down": 10,
+    "count_down": 3,
     "playercount": 0,
     "questioncount": 0,
     "ans0": None,
     "ans1": None,
     "anscount": 0,
-    "gpslock": 0
+    "gpslock": 0,
+    "question_time": 2
 }
 
 
@@ -36,28 +39,20 @@ def count_down():
     public_counter['game_time'] -= 1
     if (public_counter['game_time'] %
             public_counter['count_down'] == 0):  #15Minus announce once
-        bot.send_message(users[0],
-                         text='Time Remain: ' +
-                         str(public_counter['game_time']) + "mins")
-        bot.send_message(users[1],
-                         text='Time Remain: ' +
-                         str(public_counter['game_time']) + "mins")
+        boardcast_announcement('遊戲時間餘下: ' + str(public_counter['game_time']) +
+                               "分鐘")
         send_question()
-    if (public_counter['game_time'] % 180 == 0):
+    if (public_counter['game_time'] % 90 == 0):
+        boardcast_announcement("遊戲完結，希望你已經搵到你中意既人啦")
+        schedule.clear("timer")
         return 0
 
 
 #Start timer
 def start_timer():
     schedule.every(1).minutes.do(count_down).tag("timer")
-    bot.send_message(users[0],
-                     text='Time Remain: ' + str(public_counter['game_time']) +
-                     "mins")
-    bot.send_message(users[1],
-                     text='Time Remain: ' + str(public_counter['game_time']) +
-                     "mins")
-    bot.send_message(users[0], text='這一條是example，但成功都會有獎勵的')
-    bot.send_message(users[1], text='這一條是example，但成功都會有獎勵的')
+    boardcast_announcement('遊戲時間餘下: ' + str(public_counter['game_time']) +
+                           "分鐘")
     send_question()
 
 
@@ -68,6 +63,27 @@ def show_time(message):
     bot.send_message(message.chat.id, public_counter['game_time'])
 
 
+#Reduce question minutes
+def question_count_down():
+    global public_counter
+    print("question_count_down")
+    public_counter['question_time'] -= 1
+    if (public_counter['question_time'] == 1):
+        boardcast_announcement("問題只餘下1分鐘，請盡快回答")
+    if (public_counter['question_time'] == 0):
+        public_counter['ans0'] = "No"
+        public_counter['ans1'] = "No"
+        schedule.clear("qtimer")
+        boardcast_announcement("問題已drop")
+
+
+#Start timer
+def question_timer_start(message):
+    print("debug")
+
+    return
+
+
 '''Time'''
 '''Gameplay'''
 
@@ -75,7 +91,7 @@ def show_time(message):
 @bot.message_handler(commands=['start'])
 def greet(message):
     help(message)
-    bot.send_message(message.chat.id, "請現在輸入/find，你的伴侶正在等你。")
+    bot.send_message(message.chat.id, "如果明白遊戲玩法既話，請輸入/find，你的伴侶正在等你。")
 
 
 @bot.message_handler(commands=['find'])
@@ -116,6 +132,7 @@ def matching(message):
 
 def send_question():
     global public_counter
+    schedule.every(1).minutes.do(question_count_down).tag("qtimer")
     questionPos = public_counter['questioncount']
     if (questionPos + 1 >= len(prepared_question)):
         boardcast_announcement("沒有問題了")
@@ -125,6 +142,7 @@ def send_question():
             questionPos].qprovider + "\n問題: " + question_list[
                 questionPos].qcontent
         public_counter['questioncount'] += 1
+        #question_timer_start()
         boardcast(question)
 
 
@@ -164,6 +182,7 @@ def release_reply():
             'ans0'] is not None and public_counter['ans1'] is not None:
         bot.send_message(users[0], "你Match的回答是\n" + public_counter['ans1'])
         bot.send_message(users[1], "你Match的回答是\n" + public_counter['ans0'])
+        schedule.clear("qtimer")
         public_counter['anscount'] = 0  #Reset value
         public_counter['ans0'] = None
         public_counter['ans1'] = None
@@ -190,7 +209,7 @@ def store_response():
 def release_response():
     global public_counter
     if (public_counter['ans0'] == 'Yes' and public_counter['ans1'] == 'Yes'):
-        boardcast_announcement("大家都認同了對方的答案")
+        boardcast_announcement("大家都認同對方的答案")
         release_bonus()
     else:
         boardcast_announcement("雙方未有統一同意")
@@ -208,8 +227,7 @@ def release_pic():
     global public_counter
     global bonus_list
     print(public_counter['questioncount'] - 1)
-    bot.send_message(users[0], "這是獎勵的圖片")
-    bot.send_message(users[1], "這是獎勵的圖片")
+    boardcast_announcement("這是獎勵的圖片")
     photo1 = open(bonus_list[public_counter['questioncount'] - 1], 'rb')
     photo2 = open(bonus_list[public_counter['questioncount'] - 1], 'rb')
     bot.send_photo(users[0], photo1)
@@ -244,7 +262,7 @@ def listq(message):
         for question in question_list:
             bot.send_message(
                 message.chat.id,
-                "問題提供者: " + question.qprovider + " 問題: " + question.qcontent)
+                "問題提供者: " + question.qprovider + "\n問題: " + question.qcontent)
     return
 
 
@@ -264,7 +282,7 @@ print([c.to_json() for c in cmd])
 def help(message):
     bot.send_message(
         message.chat.id,
-        "玩家可以用此bot尋找的對象，而match到之後系統每10分鐘會問你們一個問題，你們需要答自己心目中的答案，然後大家去睇是否接受對方的答案，如果雙方都接受的話，就可以選擇分享自己的位置，如果雙方都分享自己的位置才會得到對方的GPS位置和一個獎勵。除了答問題時間外，大家都睇唔到對方同bot之間的對話。遊玩時間有1.5小時，如果有限時間內搵到大家的話就會有bonus獎勵，但搵唔到既話都冇懲罰既\n!!!!!!注意事項!!!!!!\n1. 交通安全好重要，記住睇路！遊戲依啲野好少事。\n2. 當問題發出後，請在5分鐘內完成問題\n3. 請不要在答問題期間用任何Function 如/find, /showtime等等\n基於此交友App是測試階段，求求你跟番個instruction去玩，如果9玩有好大機會會中bug的...如果有任何問題，請致電我們的客服熱線90947184,thx"
+        "******遊戲方法******\n玩家可以用此bot尋找對象，而match到之後系統每10分鐘會問你們一個問題，你們需要答自己心目中的答案，然後大家去睇是否接受對方的答案，如果雙方都接受的話，就會得到一個獎勵，同埋可以分享自己的位置，如果雙方都分享自己的位置先會得到對方GPS既位置。除咗答問題時間外，大家都睇唔到對方同bot之間的對話。遊玩時間有1.5小時，如果有限時間內搵到對方的話就會有bonus，但搵唔到既話都冇懲罰既\n\n^^^^^^注意事項^^^^^^\n1. 交通安全好重要，記住睇路！遊戲依啲野好少事。\n2. 當問題發出後，請在5分鐘內完成問題，否則個問題係會drop既\n3. 請不要在答問題期間用任何Function 如/find, /showtime等等\n基於此交友App是測試階段，求求你跟番個instruction去玩，如果9玩有好大機會會中bug的...如果有任何問題，請致電我們的客服熱線90947184,thx"
     )
     return
 
@@ -328,13 +346,6 @@ def sendlocation(message):
                              reply_markup=del_keyboard_markup)
         public_counter["gpslock"] -= 1
         print(public_counter["gpslock"])
-
-
-@bot.message_handler(commands=['debug'])
-def debug(message):
-    global public_counter
-    print(public_counter["playercount"])
-    return
 
 
 if __name__ == '__main__':
