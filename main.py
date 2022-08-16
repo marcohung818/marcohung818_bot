@@ -3,7 +3,7 @@ import telebot
 from telebot import types
 import time, threading, schedule
 
-API_KEY = os.getenv('API_KEY')
+API_KEY = "5019621877:AAE3yt2xi2gRcJQQEamHMYi173hD1MLIWjE"
 bot = telebot.TeleBot(API_KEY)
 users = []
 question_list = []
@@ -71,10 +71,10 @@ def question_count_down():
     if (public_counter['question_time'] == 1):
         boardcast_announcement("問題只餘下1分鐘，請盡快回答")
     if (public_counter['question_time'] == 0):
-        public_counter['ans0'] = "No"
-        public_counter['ans1'] = "No"
-        schedule.clear("qtimer")
-        boardcast_announcement("問題已drop")
+        public_counter['ans0'] = "drop"
+        public_counter['ans1'] = "drop"
+        drop_reply()
+        
 
 
 #Start timer
@@ -138,11 +138,8 @@ def send_question():
         boardcast_announcement("沒有問題了")
         return
     else:
-        question = "問題提供者: " + question_list[
-            questionPos].qprovider + "\n問題: " + question_list[
-                questionPos].qcontent
+        question = "問題: " + question_list[questionPos].qcontent
         public_counter['questioncount'] += 1
-        #question_timer_start()
         boardcast(question)
 
 
@@ -188,6 +185,17 @@ def release_reply():
         public_counter['ans1'] = None
         store_response()
 
+def drop_reply():
+  global public_counter
+  if public_counter['ans0'] == "drop" or public_counter['ans1'] == "drop":
+    schedule.clear("qtimer")
+    public_counter['anscount'] = 0  #Reset value
+    public_counter['ans0'] = None
+    public_counter['ans1'] = None
+    bot.clear_step_handler_by_chat_id(chat_id=users[0])
+    bot.clear_step_handler_by_chat_id(chat_id=users[1])
+    public_counter['questioncount'] += 1
+    boardcast_announcement("問題已drop 請等下個問題")
 
 def store_response():
     global public_counter
@@ -347,6 +355,35 @@ def sendlocation(message):
         public_counter["gpslock"] -= 1
         print(public_counter["gpslock"])
 
+@bot.message_handler(commands=['askloc'])
+def request_location(message):
+    global public_counter
+    location_keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True,
+                                                  resize_keyboard=True)
+    item_location = types.KeyboardButton(text='分享位置', request_location=True)
+    location_keyboard.row(item_location)
+    if(message.chat.id == users[0]):
+      bot.send_message(users[1], "Admin要求你分享位置", reply_markup=location_keyboard)
+    else:
+      bot.send_message(users[0], "Admin要求你分享位置", reply_markup=location_keyboard)
+    public_counter["gpslock"] = 1
+
+@bot.message_handler(commands=['reset'])
+def reset(message):
+  global public_counter
+  global users
+  public_counter["game_time"] = 90
+  public_counter["count_down"] = 3
+  public_counter["playercount"] = 0
+  public_counter["questioncount"] = 0
+  public_counter["ans0"] = None
+  public_counter["ans1"] = None
+  public_counter["anscount"] = 0
+  public_counter["gpslock"] = 0
+  public_counter["question_time"] = 2
+  schedule.clear("timer")
+  boardcast_announcement("遊戲重置了 如果要重新進入遊戲的話，請再次輸入/find")
+  users.clear()
 
 if __name__ == '__main__':
     threading.Thread(target=bot.infinity_polling,
