@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot-deployment
+  labels:
+    app: bot-marco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bot-marco
+  template:
+    metadata:
+      labels:
+        app: bot-marco
+    spec:
+      containers:
+      - name: bot-marco-container
+        image: bot_marco:1.0
