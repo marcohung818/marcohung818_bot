@@ -11,7 +11,7 @@ prepared_question = [
     "Bot", "今日係幾多號?", "張家文", "如果對方一直唔覆機會點發脾氣?", "張家文", "拍拖個陣最鐘意做既野係?", "張家文",
     "最想去睇海個時會去邊?"
 ]
-bonus_list = ["xbk_icon.png", "Nutanix-AHV.png", "c.png"]
+bonus_list = ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg", "10.jpg"]
 public_counter = {
     "game_time": 90,
     "count_down": 3,
@@ -83,8 +83,8 @@ def question_count_down():
 
 @bot.message_handler(commands=['start'])
 def greet(message):
+    bot.send_message(message.chat.id, "歡迎嚟到Ellie&Marco既交友bot!")
     help(message)
-    bot.send_message(message.chat.id, "如果明白遊戲玩法既話，請輸入/find，你的伴侶正在等你。")
 
 
 @bot.message_handler(commands=['find'])
