@@ -8,20 +8,24 @@ bot = telebot.TeleBot(API_KEY)
 users = []
 question_list = []
 prepared_question = [
-    "Bot", "今日係幾多號?", "張家文", "如果對方一直唔覆機會點發脾氣?", "張家文", "拍拖個陣最鐘意做既野係?", "張家文",
-    "最想去睇海個時會去邊?"
+    "Example", "今日係幾多號?", "Macy", "最鐘意同對方一齊做咩戶外活動?", "Macy", "最鐘意邊張同對方一齊影既合照?",
+    "Amy", "黎思彤最敏感既位置?", "Amy", "孔繁昕最大既缺點?", "張家文", "拍拖個陣最鐘意做既野係?", "張家文",
+    "最想去睇海個時會去邊?", "Amy", "孔繁昕最敏感既位置", "張家文", "如果對方一直唔覆機會點發脾氣?"
 ]
-bonus_list = ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg", "10.jpg"]
+bonus_list = [
+    "1.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg",
+    "10.jpg"
+]
 public_counter = {
     "game_time": 90,
-    "count_down": 3,
+    "count_down": 10,
     "playercount": 0,
     "questioncount": 0,
     "ans0": None,
     "ans1": None,
     "anscount": 0,
     "gpslock": 0,
-    "question_time": 2
+    "question_time": 5
 }
 
 
@@ -43,10 +47,6 @@ def count_down():
         boardcast_announcement('遊戲時間餘下: ' + str(public_counter['game_time']) +
                                "分鐘")
         send_question()
-    if (public_counter['game_time'] % 90 == 0):
-        boardcast_announcement("遊戲完結，希望你已經搵到你中意同埋佢都中意你既人啦")
-        schedule.clear("timer")
-        return 0
 
 
 #Start timer
@@ -69,11 +69,13 @@ def question_count_down():
     global public_counter
     print("question_count_down")
     public_counter['question_time'] -= 1
+    print(public_counter['question_time'])
     if (public_counter['question_time'] == 1):
         boardcast_announcement("問題只餘下1分鐘，請盡快回答")
     if (public_counter['question_time'] == 2):
         boardcast_announcement("問題只餘下2分鐘，請盡快回答")
     if (public_counter['question_time'] == 0):
+        public_counter['question_time'] = 2
         drop_reply()
 
 
@@ -127,11 +129,12 @@ def send_question():
     global public_counter
     schedule.every(1).minutes.do(question_count_down).tag("qtimer")
     questionPos = public_counter['questioncount']
-    if (questionPos + 1 >= len(prepared_question)):
+    if (questionPos == 8):
         boardcast_announcement("沒有問題比你答了 遊戲結束!")
-        reset()
+        boardcast_announcement("遊戲完結，希望你已經搵到你中意同埋佢都中意你既人啦")
         return
     else:
+        print(questionPos)
         question = "問題: " + question_list[questionPos].qcontent
         public_counter['questioncount'] += 1
         boardcast(question)
@@ -182,15 +185,13 @@ def release_reply():
 
 def drop_reply():
     global public_counter
-    if public_counter['ans0'] == "drop" or public_counter['ans1'] == "drop":
-        schedule.clear("qtimer")
-        public_counter['anscount'] = 0  #Reset value
-        public_counter['ans0'] = None
-        public_counter['ans1'] = None
-        bot.clear_step_handler_by_chat_id(chat_id=users[0])
-        bot.clear_step_handler_by_chat_id(chat_id=users[1])
-        public_counter['questioncount'] += 1
-        boardcast_announcement("問題已drop 請等下個問題")
+    schedule.clear("qtimer")
+    public_counter['anscount'] = 0  #Reset value
+    public_counter['ans0'] = None
+    public_counter['ans1'] = None
+    bot.clear_step_handler_by_chat_id(chat_id=users[0])
+    bot.clear_step_handler_by_chat_id(chat_id=users[1])
+    boardcast_announcement("問題已drop 請等下個問題")
 
 
 def store_response():
@@ -286,7 +287,7 @@ print([c.to_json() for c in cmd])
 def help(message):
     bot.send_message(
         message.chat.id,
-        "******遊戲方法******\n玩家可以用此bot尋找對象，match到之後系統每10分鐘會問雙方相同的問題，你們需要答自己心目中的答案，然後大家去睇大家的答案是否相同。\n例子：\n玩家A：8月26日\n玩家Ｂ：26/8\n\n在以上情況也應計大家答案相同。如果雙方都接受的話大家的答案都相同的話，就會得到一個獎勵，同埋可以分享自己的位置。雙方必須分享自己的位置才會得到對方GPS既位置。除咗答問題時間外，大家都睇唔到對方同bot之間的對話。遊玩時間為90分鐘，如果在有限時間內搵到對方的話就會有bonus，但搵唔到既話都冇懲罰既\n\n******注意事項******\n1. 交通安全好重要，記住睇路！遊戲依啲野好少事。\n2. 當問題發出後，請在5分鐘內完成問題，否則該問題會作廢\n3. 雙方都必須答了問題之後，系統才會開出大家的答案\n4. 當答完問題之後既Yes or No，同埋分享位置環節都必須要用系統提供既按鈕，正常會自動彈出嚟既如果冇的話可以係鍵盤隔離搵到，如下圖所示 \n5. 請不要在答題期間用任何Function 如/find, /showtime等等\n基於此交友App是測試階段，希望現家可以跟番個instruction去玩，如果9玩有好大機會會中bug的謝謝合作...如果有任何問題，請致電我們的客服熱線90947184,thx"
+        "******遊戲方法******\n玩家可以用此bot尋找對象，match到之後系統每10分鐘會問雙方相同的問題，你們需要答自己心目中的答案，然後大家去睇大家的答案是否相同。\n例子：\n玩家A：8月26日\n玩家B：26/8\n\n在以上情況也應計大家答案相同。如果雙方都接受的話大家的答案都相同的話，就會得到一個獎勵，同埋可以分享自己的位置。雙方必須分享自己的位置才會得到對方GPS既位置。除咗答問題時間外，大家都睇唔到對方同bot之間的對話。遊玩時間為90分鐘，如果在有限時間內搵到對方的話就會有bonus，但搵唔到既話都冇懲罰既\n\n******注意事項******\n1. 交通安全好重要，記住睇路！遊戲依啲野好少事。\n2. 當問題發出後，請在5分鐘內完成問題，否則該問題會作廢\n3. 雙方都必須答了問題之後，系統才會開出大家的答案\n4. 當答完問題之後既Yes or No，同埋分享位置環節都必須要用系統提供既按鈕，正常會自動彈出嚟既如果冇的話可以係鍵盤隔離搵到，如下圖所示 \n5. 請不要在答題期間用任何Function 如/find, /showtime等等\n基於此交友App是測試階段，希望現家可以跟番個instruction去玩，如果9玩有好大機會會中bug的謝謝合作...如果有任何問題，請致電我們的客服熱線90947184,thx"
     )
     photo = open("instrcution.jpg", 'rb')
     bot.send_photo(message.chat.id, photo)
@@ -313,16 +314,19 @@ def skipq(message):
 
 @bot.message_handler(commands=['admin'])
 def admin(message):
-    bot.send_message(message.chat.id, "Please input admin password")
+    bot.send_message(
+        message.chat.id,
+        "請輸入Admin密碼! 如果係輸入途中比系統問問題的話，請答左問題先，因為系統會收你第一個回應作為該問題的答案!")
     bot.register_next_step_handler(message, list_admin_menu)
     return
 
 
 def list_admin_menu(message):
-    if (message.text == "ellie&marco"):
+    if (message.text == "ELLIE&MARCO"):
         bot.send_message(
             message.chat.id,
-            "/listq - 列出所有問題\n/skipq - 跳題目\n/askloc - 要求對方比gps位置\n/reset - 重罝遊戲")
+            "/listq - 列出所有問題\n/skipq - 跳題目\n/askloc - 要求對方比gps位置\n/reset - 重罝遊戲"
+        )
     else:
         bot.send_message(message.chat.id, "密碼錯誤")
     return
@@ -357,20 +361,20 @@ def sendlocation(message):
 @bot.message_handler(commands=['askloc'])
 def request_location(message):
     global public_counter
-    if(len(users) != 2):
-      bot.send_message(message.chat.id, "遊戲仲未開始呀!")
-      return
+    if (len(users) != 2):
+        bot.send_message(message.chat.id, "遊戲仲未開始呀!")
+        return
     location_keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True,
                                                   resize_keyboard=True)
     item_location = types.KeyboardButton(text='分享位置', request_location=True)
     location_keyboard.row(item_location)
     if (message.chat.id == users[0]):
         bot.send_message(users[1],
-                         "Admin要求你分享位置，唔快D分享會中bug的...真心的...",
+                         "Admin要求你分享位置，唔快D分享會中bug嫁...真心嫁...",
                          reply_markup=location_keyboard)
     else:
         bot.send_message(users[0],
-                         "Admin要求你分享位置，唔快D分享會中bug的...真心的...",
+                         "Admin要求你分享位置，唔快D分享會中bug嫁...真心嫁...",
                          reply_markup=location_keyboard)
     public_counter["gpslock"] = 1
 
@@ -380,14 +384,14 @@ def reset(message):
     global public_counter
     global users
     public_counter["game_time"] = 90
-    public_counter["count_down"] = 3
+    public_counter["count_down"] = 10
     public_counter["playercount"] = 0
     public_counter["questioncount"] = 0
     public_counter["ans0"] = None
     public_counter["ans1"] = None
     public_counter["anscount"] = 0
     public_counter["gpslock"] = 0
-    public_counter["question_time"] = 2
+    public_counter["question_time"] = 5
     schedule.clear("timer")
     boardcast_announcement("遊戲重置了 如果要重新進入遊戲的話，請再次輸入/find")
     users.clear()
