@@ -16,4 +16,4 @@ spec:
     spec:
       containers:
       - name: bot-marco-container
-        image: bot_marco:1.0
+        image: bot_marco:2.0

@@ -325,7 +325,7 @@ def list_admin_menu(message):
     if (message.text == "ELLIE&MARCO"):
         bot.send_message(
             message.chat.id,
-            "/listq - 列出所有問題\n/skipq - 跳題目\n/askloc - 要求對方比gps位置\n/reset - 重罝遊戲"
+            "/listq - 列出所有問題\n/skipq - 跳題目\n/askloc - 要求對方比gps位置\n/listpic - 列出哂所有獎勵\n/reset - 重罝遊戲"
         )
     else:
         bot.send_message(message.chat.id, "密碼錯誤")
@@ -356,6 +356,12 @@ def sendlocation(message):
                              reply_markup=del_keyboard_markup)
         public_counter["gpslock"] -= 1
         print(public_counter["gpslock"])
+
+@bot.message_handler(commands=['listpic'])
+def list_pic(message):
+    for pic in bonus_list:
+        photo = open(pic, 'rb')
+        bot.send_photo(message.chat.id, photo)
 
 
 @bot.message_handler(commands=['askloc'])
@@ -395,6 +401,7 @@ def reset(message):
     schedule.clear("timer")
     boardcast_announcement("遊戲重置了 如果要重新進入遊戲的話，請再次輸入/find")
     users.clear()
+
 
 
 if __name__ == '__main__':
