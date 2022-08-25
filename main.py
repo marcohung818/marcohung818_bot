@@ -10,7 +10,7 @@ question_list = []
 prepared_question = [
     "Example", "今日係幾多號?", "Macy", "最鐘意同對方一齊做咩戶外活動?", "Macy", "最鐘意邊張同對方一齊影既合照?",
     "Amy", "黎思彤最敏感既位置?", "Amy", "孔繁昕最大既缺點?", "張家文", "拍拖個陣最鐘意做既野係?", "張家文",
-    "最想去睇海個時會去邊?", "Amy", "孔繁昕最敏感既位置", "張家文", "如果對方一直唔覆機會點發脾氣?"
+    "最想去睇海個時會去邊?", "Amy", "孔繁昕最敏感既位置", "青蛙", "想生仔定生女?"
 ]
 bonus_list = [
     "1.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg",
@@ -316,7 +316,7 @@ def skipq(message):
 def admin(message):
     bot.send_message(
         message.chat.id,
-        "請輸入Admin密碼! 如果係輸入途中比系統問問題的話，請答左問題先，因為系統會收你第一個回應作為該問題的答案!")
+        "請輸入Admin密碼!\n如果係輸入途中比系統問問題的話，請答左問題先，因為系統會收你第一個回應作為該問題的答案!")
     bot.register_next_step_handler(message, list_admin_menu)
     return
 
