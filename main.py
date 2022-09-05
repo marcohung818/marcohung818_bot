@@ -9,8 +9,8 @@ users = []
 question_list = []
 prepared_question = [
     "Example", "今日係幾多號?", "Macy", "最鐘意同對方一齊做咩戶外活動?", "Macy", "最鐘意邊張同對方一齊影既合照?",
-    "Amy", "黎思彤最敏感既位置?", "Amy", "孔繁昕最大既缺點?", "張家文", "拍拖個陣最鐘意做既野係?", "張家文",
-    "最想去睇海個時會去邊?", "Amy", "孔繁昕最敏感既位置", "青蛙", "想生仔定生女?"
+    "Amy", "黎思彤最敏感既位置?(唔計色色部位)", "Amy", "孔繁昕最大既缺點?", "張家文", "拍拖個陣最鐘意做既野係?", "張家文",
+    "最想去睇海個時會去邊?", "Amy", "孔繁昕最敏感既位置?(唔計色色部位)", "青蛙", "想生仔定生女?"
 ]
 bonus_list = [
     "1.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg", "8.jpg", "9.jpg",
@@ -71,11 +71,11 @@ def question_count_down():
     public_counter['question_time'] -= 1
     print(public_counter['question_time'])
     if (public_counter['question_time'] == 1):
-        boardcast_announcement("問題只餘下1分鐘，請盡快回答")
+        boardcast_announcement("問題只餘下1分鐘，有人未答問題，未答題者請盡快回答，已答題者可以無視此警告!")
     if (public_counter['question_time'] == 2):
-        boardcast_announcement("問題只餘下2分鐘，請盡快回答")
+        boardcast_announcement("問題只餘下2分鐘，有人未答問題，未答題者請盡快回答，已答題者可以無視此警告!")
     if (public_counter['question_time'] == 0):
-        public_counter['question_time'] = 2
+        public_counter['question_time'] = 5
         drop_reply()
 
 
@@ -148,10 +148,10 @@ def boardcast_announcement(message_text):
 #Send message to both sides
 def boardcast(message_text):
     bot.send_message(users[0], text=message_text)
-    msg_1 = bot.send_message(users[0], text="請回答")
+    msg_1 = bot.send_message(users[0], text="請回答(只限文字)")
     bot.register_next_step_handler(msg_1, store_reply)
     bot.send_message(users[1], text=message_text)
-    msg_2 = bot.send_message(users[1], text="請回答")
+    msg_2 = bot.send_message(users[1], text="請回答(只限文字)")
     bot.register_next_step_handler(msg_2, store_reply)
 
 
@@ -355,6 +355,8 @@ def sendlocation(message):
                              "你的位置已發送",
                              reply_markup=del_keyboard_markup)
         public_counter["gpslock"] -= 1
+        if(public_counter["gpslock"] == 0):
+            boardcast_announcement("問題已完 請等下個問題")
         print(public_counter["gpslock"])
 
 @bot.message_handler(commands=['listpic'])
